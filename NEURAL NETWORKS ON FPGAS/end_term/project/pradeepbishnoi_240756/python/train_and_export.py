@@ -1,5 +1,6 @@
 # Importing Modules
 import numpy as np
+import os
 import tensorflow as tf
 from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
@@ -61,19 +62,23 @@ biases = quantize_to_16bit(biases)
 hex_weights = [format(int(w) & 0xFFFF, '04x') for w in weights]
 hex_biases = [format(int(b) & 0xFFFF, '04x') for b in biases]
 
+# Paths defined
+script_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(script_dir)
+weights_dir = os.path.join(project_root, 'weights')
+os.makedirs(weights_dir, exist_ok=True)
+
 # Storing Weights in weights.mem
-weights_file = 'weights/weights.mem'
-with open('weights.mem', 'w') as f:
+with open(os.path.join(weights_dir, 'weights.mem'), 'w') as f:
     for h_w in hex_weights:
         f.write(f"{h_w}\n")
 
 # Storing Biases in biases.mem
-biases_file = 'weights/biases.mem'
-with open('biases.mem', 'w') as f:
+with open(os.path.join(weights_dir, 'biases.mem'), 'w') as f:
     for h_b in hex_biases:
         f.write(f"{h_b}\n")
 
-print("Successfully stored weights.mem and biases.mem")
+print("Successfully created weights.mem and biases.mem")
 
 # Taking 10 test inputs
 total_test = X_test.shape[0]
@@ -92,8 +97,7 @@ y_raw = y_raw.reshape(-1, 1).astype(int)
 test_matrix = np.hstack((x_raw, y_raw))
 
 # Storing test inputs in test_data.mem
-test_file = 'weights/test_data.mem'
-with open(test_file, 'w') as f:
+with open(os.path.join(weights_dir, 'test_data.mem'), 'w') as f:
     for row in test_matrix:
         # Convert each value in the row to a 4-digit hex string
         # format(val & 0xFFFF, '04x') ensures:
@@ -104,5 +108,5 @@ with open(test_file, 'w') as f:
         # Join the 5 hex values with a space and add a newline
         f.write(" ".join(hex_row) + "\n")
 
-print(f"Successfully created {test_file}")
+print(f"Successfully created test_data.mem")
 
