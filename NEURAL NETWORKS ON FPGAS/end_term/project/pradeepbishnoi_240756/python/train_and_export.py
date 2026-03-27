@@ -49,14 +49,12 @@ biases = np.concatenate([
 ])
 
 # Quantising
-def quantize_to_16bit(values):
-    # Multiply by 256 (Q8 format) and round
-    quantized = np.round(values * 256).astype(int)
-    # Clip to 16-bit signed integer range [-32768, 32767]
-    return np.clip(quantized, -32768, 32767)
+def quantize(value):
+    quantized = int(round(float(value) * 256))
+    return max(-32768, min(32767, quantized))
 
-weights = quantize_to_16bit(weights)
-biases = quantize_to_16bit(biases)
+weights = np.vectorize(quantize)(weights).astype(np.int16)
+biases = np.vectorize(quantize)(biases).astype(np.int16)
 
 # Converting 16-bit digits into 4 char long hex format
 hex_weights = [format(int(w) & 0xFFFF, '04x') for w in weights]
@@ -88,7 +86,7 @@ x_raw = X_test[random_indices]
 y_raw = y_test[random_indices]
 
 # Quantising test inputs
-x_raw = quantize_to_16bit(x_raw)
+x_raw = np.vectorize(quantize)(x_raw).astype(np.int16)
 
 # Reshaping labels to stack them with the inputs
 y_raw = y_raw.reshape(-1, 1).astype(int)
