@@ -1,14 +1,15 @@
 # Comprehensive Report: Illicit Transaction Detection in Bitcoin using GNNs
 
 ## 1. Members of the Team
-*Note: Please insert the actual team member names below.*
-- **[Harshit]**
-- **[Shivam]**
-- **[Harsh]**
-- **[Ojas]**
-- **[Dhruv]**
-- **[Lakshay]**
-- **[Chirag]**
+- **Harshit**
+- **Shivam**
+- **Harsh**
+- **Ojas**
+- **Dhruv**
+- **Lakshay**
+- **Chirag**
+- **Manthan**
+- **Sarthak**
 
 
 ## 2. Overall Project Summary
