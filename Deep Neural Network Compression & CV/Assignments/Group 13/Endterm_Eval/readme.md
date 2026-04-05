@@ -35,6 +35,7 @@ pip install torch torchvision numpy scikit-learn
 ### 3. Execution
 
 To run the full end-to-end pipeline (Training -> Pruning -> Quantization -> Huffman):
+
 **Note**: ⚠️ This process includes fine-tuning epochs to recover accuracy loss after pruning and may take several minutes on an M1/M2 Mac.
 ```bash
 python3 main.py
