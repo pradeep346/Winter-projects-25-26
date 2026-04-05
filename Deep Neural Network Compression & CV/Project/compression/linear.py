@@ -1,28 +1,55 @@
+
 import torch
-from torch import nn
+import torch.nn as nn
 import torch.nn.functional as F
-from sklearn.cluster import KMeans
-class modified_linear(nn.Linear):
-    def __init__(self, in_features, out_features, bias = True, device=None, dtype=None):
-        super().__init__(in_features, out_features, bias, device, dtype)
-    def prune(self,threshold):
-        #this function should prune the weights which are below threshold
-        pass
-    def quantize(self,k):
-        '''cluster the weights in k different cluster, and then use 2 things, 
-        one is a cluster map which will be o(nxn) uint8 type and one array of clusters which wil
-        be a O(k) sized fload 34 
 
-        note that SK-learn is a cpu library!
-        '''
-        pass
-    def forward(self, input):
-        if(self.mode == 'normal'):
-            print("hello")
-        elif(self.mode == 'prune'):
-            print("hello")
-        elif(self.mode == 'quantize'):
-            print("hello")
-        return
+class modified_linear(nn.Module):
+    def __init__(self, in_features, out_features, bias=True):
+        super().__init__()
 
+        self.in_features = in_features
+        self.out_features = out_features
+
+        self.weight = nn.Parameter(torch.randn(out_features, in_features) * 0.01)
+        self.bias = nn.Parameter(torch.zeros(out_features)) if bias else None
+
+        # mask for pruning
+        self.register_buffer("mask", torch.ones_like(self.weight))
+
+    def forward(self, x):
+        return F.linear(x, self.weight * self.mask, self.bias)
     
+
+
+    # Pruning Function
+    def prune(self, ratio):
+        weight_abs = self.weight.data.abs().view(-1)
+
+        k = int(ratio * weight_abs.numel())
+        if k == 0:
+            return
+
+        threshold = torch.topk(weight_abs, k, largest=False).values.max()
+
+        mask = (self.weight.data.abs() > threshold).float()
+        self.mask.data = mask
+
+
+
+    # Quantization Function
+    def quantize(self, num_bits):
+        levels = 2 ** num_bits
+
+        weight = self.weight.data
+        w_min = weight.min()
+        w_max = weight.max()
+
+        if w_max == w_min:
+            return
+
+        scale = (w_max - w_min) / (levels - 1)
+
+        q_weight = torch.round((weight - w_min) / scale)
+        dequant_weight = q_weight * scale + w_min
+
+        self.weight.data = dequant_weight

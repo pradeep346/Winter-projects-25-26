@@ -1,14 +1,14 @@
-import torch
-import os
-from pathlib import Path
+# Configuration parameters for MLP model
+DATA_DIR = "data/"
+BATCH_SIZE = 128
+NUM_EPOCHS = 30
+FINETUNE_EPOCHS = 10
+LR = 1e-3
 
-def config_device():
-    device = None
-    if torch.backends.mps.is_available():
-        device = torch.device("mps")
-    elif torch.cuda.is_available():
-        device = torch.device("cuda")
-    else:
-        device = torch.device("cpu")
-    print(device)
-    return device
+PRUNING_RATIO = 0.5      # 50% weights are to be pruned
+NUM_BITS = 8            
+
+FEATURE_DIM = 512        
+NUM_CLASSES = 10
+
+SEED = 42
