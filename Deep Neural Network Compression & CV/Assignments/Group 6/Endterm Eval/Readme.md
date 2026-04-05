@@ -1,10 +1,10 @@
-# 🧠 Deep Compression Pipeline
+#  Deep Compression Pipeline
 
 > A full neural network compression pipeline applied to MNIST digit classification, implementing **Pruning → Quantization → Huffman Encoding** — the three-stage approach inspired by Han et al. (2015).
 
 ---
 
-## 📌 Overview
+##  Overview
 
 This project demonstrates how a trained neural network (MLP) can be dramatically compressed without meaningful loss in accuracy. The pipeline takes a baseline model, prunes redundant weights, quantizes the remaining ones using weight sharing, and finally applies Huffman encoding to achieve maximum storage reduction.
 
@@ -12,7 +12,7 @@ The entire pipeline is orchestrated via `main.py` and evaluated at each stage.
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 deep-compression/
@@ -38,7 +38,7 @@ deep-compression/
 
 ---
 
-## ⚙️ Configuration
+##  Configuration
 
 All key hyperparameters are centralized in `config.py`:
 
@@ -53,7 +53,7 @@ All key hyperparameters are centralized in `config.py`:
 
 ---
 
-## 🔁 Pipeline: 4 Phases
+##  Pipeline: 4 Phases
 
 ### Phase 1 — Baseline Training
 
@@ -116,7 +116,7 @@ Huffman encoding is applied as the final compression step. More frequent weight 
 
 ---
 
-## 📊 Results Summary
+##  Results Summary
 
 | Stage                       | Test Accuracy | Model Size        | Notes                                      |
 |-----------------------------|---------------|-------------------|--------------------------------------------|
@@ -175,7 +175,7 @@ Huffman encoding is applied as the final compression step. More frequent weight 
 
 ---
 
-## 🚀 How to Run
+##  How to Run
 
 ### 1. Install Dependencies
 
@@ -195,7 +195,7 @@ Open `final_training.ipynb` in Jupyter for an interactive step-by-step walkthrou
 
 ---
 
-## 🧪 Key Techniques
+##  Key Techniques
 
 | Technique              | Module                    | Description                                            |
 |------------------------|---------------------------|--------------------------------------------------------|
@@ -206,7 +206,7 @@ Open `final_training.ipynb` in Jupyter for an interactive step-by-step walkthrou
 
 ---
 
-## 📚 Reference
+##  Reference
 
 This project is based on the paper:
 
