@@ -1,10 +1,9 @@
 # Importing Modules
-import numpy as np
-import os
-import tensorflow as tf
-from sklearn.datasets import load_iris
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
+import numpy as np 
+import tensorflow as tf 
+from sklearn.datasets import load_iris 
+from sklearn.model_selection import train_test_split 
+from sklearn.preprocessing import StandardScaler 
 
 # Loading the Iris dataset and creating variables for training
 iris = load_iris()
@@ -49,19 +48,18 @@ biases = np.concatenate([
 ])
 
 # Quantising
-def quantize(value):
-    quantized = int(round(float(value) * 256))
-    return max(-32768, min(32767, quantized))
+def quantize_to_16bit(values):
+    # Multiply by 256 (Q8 format) and round
+    quantized = np.round(values * 256).astype(int)
+    # Clip to 16-bit signed integer range [-32768, 32767]
+    return np.clip(quantized, -32768, 32767)
 
-weights = np.vectorize(quantize)(weights).astype(np.int16)
-biases = np.vectorize(quantize)(biases).astype(np.int16)
+weights = quantize_to_16bit(weights)
+biases = quantize_to_16bit(biases)
 
 # Converting 16-bit digits into 4 char long hex format
 hex_weights = [format(int(w) & 0xFFFF, '04x') for w in weights]
 hex_biases = [format(int(b) & 0xFFFF, '04x') for b in biases]
-
-import os
-os.makedirs('../weights', exist_ok=True)
 
 # Storing Weights in weights.mem
 weights_file = '../weights/weights.mem'
@@ -75,7 +73,7 @@ with open(biases_file, 'w') as f:
     for h_b in hex_biases:
         f.write(f"{h_b}\n")
 
-print("Successfully created weights.mem and biases.mem")
+print("Successfully stored weights.mem and biases.mem")
 
 # Taking 10 test inputs
 total_test = X_test.shape[0]
@@ -85,7 +83,7 @@ x_raw = X_test[random_indices]
 y_raw = y_test[random_indices]
 
 # Quantising test inputs
-x_raw = np.vectorize(quantize)(x_raw).astype(np.int16)
+x_raw = quantize_to_16bit(x_raw)
 
 # Reshaping labels to stack them with the inputs
 y_raw = y_raw.reshape(-1, 1).astype(int)
@@ -94,7 +92,7 @@ y_raw = y_raw.reshape(-1, 1).astype(int)
 test_matrix = np.hstack((x_raw, y_raw))
 
 # Storing test inputs in test_data.mem
-test_file = '../weights/test_data.mem'
+test_file = 'weights/test_data.mem'
 with open(test_file, 'w') as f:
     for row in test_matrix:
         # Convert each value in the row to a 4-digit hex string
@@ -103,8 +101,8 @@ with open(test_file, 'w') as f:
         # - Positive numbers are padded with zeros (e.g., 2 -> 0002)
         hex_row = [format(int(val) & 0xFFFF, '04x') for val in row]
 
-        # Join the 5 hex values with a space and add a newline
+        # Joins the 5 hex values with a space and add a newline
         f.write(" ".join(hex_row) + "\n")
 
-print(f"Successfully created test_data.mem")
+print(f"Successfully created {test_file}")
 
