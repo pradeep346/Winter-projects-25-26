@@ -10,21 +10,15 @@ module neuron (
     output reg         valid       // Pulses high for one cycle when output is ready
 );
 
-    // -------------------------------------------------------------------------
     // Internal Registers
-    // -------------------------------------------------------------------------
     reg signed [31:0] acc;      // 32-bit accumulator for Q16 MAC results
     reg               active;   // Tracks whether a calculation is in progress
     reg               last_d;   // One-cycle delayed version of last signal
 
-    // -------------------------------------------------------------------------
     // Combinational product of current inputs (Q8 x Q8 = Q16)
-    // -------------------------------------------------------------------------
     wire signed [31:0] current_product = $signed(data_in) * $signed(weight_in);
 
-    // -------------------------------------------------------------------------
     // Main Logic Block
-    // -------------------------------------------------------------------------
     always @(posedge clk or negedge rst_n)
     begin
         if (!rst_n)
@@ -44,14 +38,9 @@ module neuron (
             // Delay last by one cycle so bias+ReLU stage sees fully updated acc
             last_d <= last;
 
-            // -----------------------------------------------------------------
             // MAC Stage: runs every cycle while active or starting
-            // On start : load first product directly (avoids dual-write bug
-            //            where both reset and accumulate target acc together)
-            // Otherwise: accumulate — this now also runs on the last cycle,
-            //            ensuring the final product is registered into acc
-            //            before the bias+ReLU stage reads it
-            // -----------------------------------------------------------------
+            // On start : load first product directly (avoids dual-write bug where both reset and accumulate target acc together)
+            // Otherwise: accumulate — this now also runs on the last cycle, ensuring the final product is registered into acc before the bias+ReLU stage reads it
             if (start)
             begin
                 acc    <= current_product;  // Load first product, skip reset+add race
@@ -63,19 +52,17 @@ module neuron (
                 acc <= acc + current_product;  // Accumulate every cycle including last
             end
 
-            // -----------------------------------------------------------------
             // Bias + ReLU Stage: triggers one cycle AFTER last goes high
             // By this point acc contains ALL products including the last one
             // Bias is shifted left by 8 to scale from Q8 to Q16 to match acc
-            // -----------------------------------------------------------------
             if (last_d && active)
             begin
-                // Calculation is complete
+                
                 active <= 1'b0;
                 valid  <= 1'b1;
 
-                // Add bias (scaled to Q16) to the fully accumulated result
-                // Use a local variable for readability inside the always block
+                // Adding bias (scaled to Q16) to the fully accumulated result
+                // Using a local variable for readability inside the always block
                 begin : relu_block
                     reg signed [31:0] final_sum;
                     final_sum = acc + ($signed(bias) <<< 8);
