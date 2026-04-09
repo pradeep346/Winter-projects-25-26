@@ -67,7 +67,7 @@ module tb_neuron();
         data_in   = 16'hff80; // -0.5
         weight_in = 16'h0200; // 2.0
 
-        // Cycle 4: Input 1.0 * Weight -0.5 = -0.5 (LAST)
+        // Cycle 4: Input 1.0 * Weight -0.5 = -0.5 
         @(posedge clk);
         last = 1;
         data_in   = 16'h0100; // 1.0
