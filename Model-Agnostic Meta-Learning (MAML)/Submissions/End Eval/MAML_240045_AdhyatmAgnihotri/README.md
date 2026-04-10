@@ -11,7 +11,7 @@ I built a meta-learning system for OFDM channel estimation. The model is trained
 ## 2. How to set it up
 
 git clone https://github.com/adhyatm19/Winter-projects-25-26.git
-cd Winter-projects-25-26
+cd "Winter-projects-25-26/Model-Agnostic Meta-Learning (MAML)/Submissions/End Eval/MAML_240045_AdhyatmAgnihotri"
 python3 -m pip install -r requirements.txt
 
 If your local PyTorch install hits a macOS OpenMP warning, run the training and test commands with `KMP_DUPLICATE_LIB_OK=TRUE`.
