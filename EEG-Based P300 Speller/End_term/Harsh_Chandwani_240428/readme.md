@@ -58,8 +58,6 @@ Download the BCI Competition III Dataset II from https://www.bbci.de/competition
 
 ---
 
----
-
 ## Ground Truth Strings
 
 The true character sequences for Subjects A and B are obtained from the official BCI Competition III Dataset II website:
