@@ -1,8 +1,8 @@
 
 # FPGA Neural Network – Iris Classifier
 
-**Name:** Shivanshu Jaiswara
-**Roll Number:** 240985
+**Name:** Shivanshu Jaiswara  
+**Roll Number:** 240985  
 **Board:** Basys3 (Artix-7 xc7a35t-cpg236-1)
 
 ---
