@@ -49,7 +49,7 @@ Results from a 50-sample sweep across all five ranges (seed = 42):
 
 Auto-ranging consistently keeps error below the 2% target across the full 10^5 value range. Fixed-range performance degrades sharply at the low and high ends because a single range cannot cover the full scale accurately.
 
-Accuracy plot:  results/plot_accuracy.png
+Accuracy plot:  results/plot_accuracy.png  
 Range state plot: results/plot_autorange.png
 
 ---
