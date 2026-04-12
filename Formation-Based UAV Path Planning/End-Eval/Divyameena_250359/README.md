@@ -1,2 +1,0 @@
-## uav-path-planning
-
