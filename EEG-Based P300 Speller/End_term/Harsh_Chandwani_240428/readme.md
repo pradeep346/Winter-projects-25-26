@@ -29,7 +29,8 @@ eeg_speller/
 │   ├── evaluate.py       # Accuracy, ITR, confusion matrix, k-fold CV
 │   ├── speller_ui.py     # PsychoPy visual stimulus interface
 │   └── main.py               # Full training + evaluation pipeline
-└── README.md
+├── readme.md
+└── results
 ```
 
 ---
