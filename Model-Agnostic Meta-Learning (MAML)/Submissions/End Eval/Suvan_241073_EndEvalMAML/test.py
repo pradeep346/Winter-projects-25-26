@@ -1,158 +1,161 @@
+# test.py
 import os
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import numpy as np
-import matplotlib.subplots as plt_subs
 import matplotlib.pyplot as plt
+import copy
 
-# Import architectures and utils from our training script
-from train import IndoorLocNet, fetch_data_tensors, train_from_scratch
+# 1. Define the Neural Network exactly as it is in train.py
+class ChannelEstimator(nn.Module):
+    def __init__(self, input_size=16, hidden_size=64, output_size=16):
+        super(ChannelEstimator, self).__init__()
+        self.net = nn.Sequential(
+            nn.Linear(input_size, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, output_size)
+        )
 
-def quick_adapt_eval(meta_model, x_shot, y_shot, x_eval, y_eval, steps=5, lr=0.02):
-    """ Takes a meta-trained model, finetunes it briefly on the shots, and checks the eval set. """
-    local_net = IndoorLocNet()
-    local_net.load_state_dict(meta_model.state_dict())
-    opt = optim.Adam(local_net.parameters(), lr=lr)
-    mse = nn.MSELoss()
+    def forward(self, x):
+        return self.net(x)
+
+def compute_nmse_db(mse, true_y):
+    """
+    Converts MSE to Normalized Mean Squared Error (NMSE) in decibels (dB).
+    Lower error = better for NMSE.
+    """
+    power = torch.mean(true_y ** 2).item()
+    if power == 0:
+        return 0
+    nmse_linear = mse / power
+    return 10 * np.log10(nmse_linear + 1e-10)
+
+def main():
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    data_path = os.path.join(current_dir, "channel_data.npz")
+    results_dir = os.path.join(current_dir, "results")
+    os.makedirs(results_dir, exist_ok=True)
+
+    print("="*40)
+    print("GENERATING PLOT 1: TRAINING LOSS")
+    print("="*40)
     
-    error_curve = []
-    
-    # Record zero-shot performance (before any room-specific training)
-    with torch.no_grad():
-        initial_preds = local_net(x_eval)
-        error_curve.append(mse(initial_preds, y_eval).item())
-    
-    # Fast adaptation loop
-    for _ in range(steps):
-        preds = local_net(x_shot)
-        loss = mse(preds, y_shot)
-        opt.zero_grad()
-        loss.backward()
-        opt.step()
+    try:
+        # Load the losses saved by train.py
+        meta_losses = np.load(os.path.join(current_dir, "meta_losses.npy"))
+        plt.figure(figsize=(8, 5))
         
-        # Track improvement on the eval set after each gradient step
-        with torch.no_grad():
-            step_eval_preds = local_net(x_eval)
-            error_curve.append(mse(step_eval_preds, y_eval).item())
-            
-    return error_curve[-1], error_curve
-
-def eval_scratch_model(x_shot, y_shot, x_eval, y_eval, step_checkpoints=[0, 1, 2, 3, 4, 5]):
-    """ Trains a blank model from scratch to see how it compares to meta-learning. """
-    mse = nn.MSELoss()
-    errors = []
-    
-    for n_steps in step_checkpoints:
-        blank_net = IndoorLocNet()
-        if n_steps > 0:
-            opt = optim.Adam(blank_net.parameters(), lr=0.01)
-            for _ in range(n_steps):
-                preds = blank_net(x_shot)
-                loss = mse(preds, y_shot)
-                opt.zero_grad()
-                loss.backward()
-                opt.step()
+        plt.plot(meta_losses, label="Meta-Training Loss", color='green', alpha=0.3)
+        smoothed = np.convolve(meta_losses, np.ones(20)/20, mode='valid')
+        plt.plot(smoothed, color='darkgreen', linewidth=2, label="Smoothed Loss")
         
+        plt.title("Plot 1: MAML/Reptile Training Loss Curve")
+        plt.xlabel("Meta-Training Iteration")
+        plt.ylabel("Loss Value (MSE)")
+        plt.legend()
+        plt.grid(True)
+        
+        loss_plot_path = os.path.join(results_dir, "plot_loss.png")
+        plt.savefig(loss_plot_path)
+        print(f"Success! Plot 1 saved to {loss_plot_path}")
+        plt.close() # Close figure to prevent overlap
+    except FileNotFoundError:
+        print("Error: Could not find meta_losses.npy. Run train.py first!")
+
+    print("\n" + "="*40)
+    print("EVALUATING MODELS & GENERATING PLOT 2")
+    print("="*40)
+
+    data = np.load(data_path, allow_pickle=True)
+    test_tasks = data['test']
+    num_test_tasks = len(test_tasks)
+
+    maml_model = ChannelEstimator()
+    baseline_model = ChannelEstimator()
+    
+    # Load weights
+    maml_model.load_state_dict(torch.load(os.path.join(current_dir, "maml_model.pth"), weights_only=True))
+    baseline_model.load_state_dict(torch.load(os.path.join(current_dir, "baseline_model.pth"), weights_only=True))
+
+    num_steps = 20
+    maml_nmse_history = np.zeros(num_steps + 1)
+    base_nmse_history = np.zeros(num_steps + 1)
+    
+    criterion = nn.MSELoss()
+    inner_lr = 0.01
+
+    print(f"Running adaptation on {num_test_tasks} test tasks...")
+    
+    for i, task in enumerate(test_tasks):
+        x_s = torch.tensor(task['X_support'], dtype=torch.float32)
+        y_s = torch.tensor(task['Y_support'], dtype=torch.float32)
+        x_q = torch.tensor(task['X_query'], dtype=torch.float32)
+        y_q = torch.tensor(task['Y_query'], dtype=torch.float32)
+
+        temp_maml = copy.deepcopy(maml_model)
+        temp_base = copy.deepcopy(baseline_model)
+        
+        opt_maml = optim.Adam(temp_maml.parameters(), lr=inner_lr)
+        opt_base = optim.Adam(temp_base.parameters(), lr=inner_lr)
+        
+        # Step 0 (Pre-adaptation)
         with torch.no_grad():
-            eval_preds = blank_net(x_eval)
-            errors.append(mse(eval_preds, y_eval).item())
+            maml_nmse_history[0] += compute_nmse_db(criterion(temp_maml(x_q), y_q).item(), y_q)
+            base_nmse_history[0] += compute_nmse_db(criterion(temp_base(x_q), y_q).item(), y_q)
             
-    return errors
+        # Adapt for 1 to 5 steps
+        for step in range(1, num_steps + 1):
+            opt_maml.zero_grad()
+            loss_maml = criterion(temp_maml(x_s), y_s)
+            loss_maml.backward()
+            opt_maml.step()
+            
+            opt_base.zero_grad()
+            loss_base = criterion(temp_base(x_s), y_s)
+            loss_base.backward()
+            opt_base.step()
+            
+            with torch.no_grad():
+                maml_nmse_history[step] += compute_nmse_db(criterion(temp_maml(x_q), y_q).item(), y_q)
+                base_nmse_history[step] += compute_nmse_db(criterion(temp_base(x_q), y_q).item(), y_q)
+                    
+    # Average the NMSE across all test tasks
+    maml_nmse_history /= num_test_tasks
+    base_nmse_history /= num_test_tasks
+
+    print("\n" + "="*40)
+    print(f"RESULTS ACROSS {num_steps} ADAPTATION STEPS")
+    print("="*40)
+
+    # Loop through all recorded steps and print when it's a multiple of 5
+    for step in range(num_steps + 1):
+        if step > 0 and step % 5 == 0:
+            print(f"--- {step}-Step Adaptation ---")
+            print(f"Baseline model: {base_nmse_history[step]:.2f} dB")
+            print(f"MAML model:     {maml_nmse_history[step]:.2f} dB\n")
+
+    # Plot 2 — MAML vs Baseline Comparison
+    plt.figure(figsize=(8, 5))
+    steps = np.arange(num_steps + 1)
+    
+    plt.plot(steps, maml_nmse_history, marker='o', color='red', linewidth=2, label="MAML (Ours)")
+    plt.plot(steps, base_nmse_history, marker='s', color='blue', linewidth=2, linestyle='--', label="Baseline")
+    
+    plt.title("Plot 2: MAML vs Baseline Comparison")
+    plt.xlabel("Number of Adaptation Steps")
+    plt.ylabel("Test Error (NMSE in dB)")
+    plt.xticks(steps)
+    plt.legend()
+    plt.grid(True)
+    
+    comp_plot_path = os.path.join(results_dir, "plot_comparison.png")
+    plt.savefig(comp_plot_path)
+    print(f"Success! Plot 2 saved to {comp_plot_path}")
 
 if __name__ == "__main__":
-    # Lock seeds for consistent chart generation
     torch.manual_seed(42)
     np.random.seed(42)
-    
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    data_dir = os.path.join(base_dir, "data")
-    model_dir = os.path.join(base_dir, "models")
-    viz_dir = os.path.join(base_dir, "results")
-    os.makedirs(viz_dir, exist_ok=True)
-    
-    print(f"Locating test datasets...")
-    test_suites = {
-        '5-shot':  fetch_data_tensors(os.path.join(data_dir, "test_data_5shot.npz")),
-        '10-shot': fetch_data_tensors(os.path.join(data_dir, "test_data.npz")),
-        '20-shot': fetch_data_tensors(os.path.join(data_dir, "test_data_20shot.npz")),
-    }
-    
-    # Load up the weights we trained in train.py
-    print("Loading pre-trained meta models...")
-    rep_net = IndoorLocNet()
-    rep_net.load_state_dict(torch.load(os.path.join(model_dir, "reptile_weights.pth"), weights_only=True))
-    
-    maml_net = IndoorLocNet()
-    maml_net.load_state_dict(torch.load(os.path.join(model_dir, "maml_weights.pth"), weights_only=True))
-    
-    adapt_limit = 5
-    x_axis_steps = list(range(adapt_limit + 1))
-    summary_metrics = {}
-    
-    # Variables to hold plotting data
-    rep_curves, maml_curves, scratch_curves = [], [], []
-    
-    for scenario_name, (x_s, y_s, x_e, y_e) in test_suites.items():
-        n_tasks = x_s.shape[0]
-        rep_final_errs, maml_final_errs, scratch_final_errs = [], [], []
-        
-        print(f"\n[ Evaluating {scenario_name} | {n_tasks} Rooms ]")
-        print(f"{'Room ID':<8} {'Scratch MSE':>12} {'Reptile MSE':>12} {'MAML MSE':>12}")
-        print("-" * 48)
-        
-        for task_id in range(n_tasks):
-            # Evaluate Reptile
-            rep_end, rep_traj = quick_adapt_eval(rep_net, x_s[task_id], y_s[task_id], x_e[task_id], y_e[task_id])
-            rep_final_errs.append(rep_end)
-            
-            # Evaluate MAML
-            maml_end, maml_traj = quick_adapt_eval(maml_net, x_s[task_id], y_s[task_id], x_e[task_id], y_e[task_id])
-            maml_final_errs.append(maml_end)
-            
-            # Evaluate Standard Training
-            scratch_err = train_from_scratch(x_s[task_id], y_s[task_id], x_e[task_id], y_e[task_id])
-            scratch_final_errs.append(scratch_err)
-            
-            # Collect curve data specifically for the 10-shot scenario to plot later
-            if scenario_name == '10-shot':
-                rep_curves.append(rep_traj)
-                maml_curves.append(maml_traj)
-                scratch_curves.append(eval_scratch_model(x_s[task_id], y_s[task_id], x_e[task_id], y_e[task_id], x_axis_steps))
-            
-            print(f"  {task_id+1:<6} {scratch_err:>12.4f} {rep_end:>12.4f} {maml_end:>12.4f}")
-            
-        summary_metrics[scenario_name] = {
-            'scratch': np.mean(scratch_final_errs),
-            'reptile': np.mean(rep_final_errs),
-            'maml': np.mean(maml_final_errs),
-        }
-        
-    # Print the final leaderboard
-    print(f"\n{'Algorithm':<20} {'5-shot MSE':>12} {'10-shot MSE':>12} {'20-shot MSE':>12}")
-    print("-" * 60)
-    for method in ['scratch', 'maml', 'reptile']:
-        display_name = "Trained from Scratch" if method == 'scratch' else method.upper()
-        print(f"{display_name:<20} {summary_metrics['5-shot'][method]:>12.4f} {summary_metrics['10-shot'][method]:>12.4f} {summary_metrics['20-shot'][method]:>12.4f}")
-        
-    # --- Visualization Generation ---
-    print("\nRendering performance charts...")
-    
-    avg_scratch = np.mean(scratch_curves, axis=0)
-    avg_rep = np.mean(rep_curves, axis=0)
-    avg_maml = np.mean(maml_curves, axis=0)
-    
-    fig, ax = plt.subplots(figsize=(9, 6))
-    ax.plot(x_axis_steps, avg_scratch, label='Scratch Base', marker='o', linestyle='--')
-    ax.plot(x_axis_steps, avg_rep, label='Reptile', marker='s')
-    ax.plot(x_axis_steps, avg_maml, label='MAML', marker='^')
-    
-    ax.set_title('Fast Adaptation on Unseen Rooms (10-Shot)')
-    ax.set_xlabel('Gradient Steps on Support Set')
-    ax.set_ylabel('Mean Squared Error on Target Set')
-    ax.legend()
-    fig.tight_layout()
-    
-    plot_out = os.path.join(viz_dir, 'adaptation_curves.png')
-    fig.savefig(plot_out, dpi=150)
-    print(f"Chart saved successfully -> {plot_out}")
+    main()
