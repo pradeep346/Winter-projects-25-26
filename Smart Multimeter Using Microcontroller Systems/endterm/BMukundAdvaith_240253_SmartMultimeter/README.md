@@ -44,14 +44,10 @@ to the results/ folder.
 
 Results from a 50-sample sweep across all five ranges (seed = 42):
 
-|---------------------------------|---------|---------|---------|
 | Method                          | R Error | C Error | L Error |
 |---------------------------------|---------|---------|---------|
 | Fixed-range (no auto)           | 40.51%  | 39.87%  | 40.44%  |
-| {Set to Middle Range (Range 3)} |         |         |         |
-|                                 |         |         |         |
 | Auto-ranging simulation         |  1.32%  |  0.48%  |  0.83%  |
-|---------------------------------|---------|---------|---------|
 
 Auto-ranging consistently keeps error below the 2% target across the full 10^5 value range. Fixed-range performance degrades sharply at the low and high ends because a single range cannot cover the full scale accurately.
 
@@ -79,8 +75,8 @@ measured resonant frequency and introduce a systematic error not present in the 
 ## File Structure
 
 ```
-end_term/
-└── smart_multimeter/
+endterm/
+└── BMukundAdvaith_240253_SmartMultimeter/
     ├── README.md
     ├── requirements.txt
     ├── simulate.py             — main simulation entry point
