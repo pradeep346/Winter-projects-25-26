@@ -8,7 +8,7 @@ I built a meta-learning system for wireless signal processing using the Reptile 
 
 ```bash
 git clone https://github.com/Samu-c/Winter-projects-25-26
-cd MAML_240535_SamruddhiKedari/end_term
+cd Winter-projects-25-26/Model-Agnostic Meta-Learning (MAML)/Submissions/End Eval/MAML_240535_SamruddhiKedari/end_term
 pip install -r requirements.txt
 ```
 
