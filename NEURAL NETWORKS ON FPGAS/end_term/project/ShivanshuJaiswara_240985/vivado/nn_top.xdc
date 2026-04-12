@@ -1,6 +1,5 @@
 ## nn_top.xdc
 ## Minimal constraints for Basys3 (Artix-7 xc7a35t)
-## Adjust pin assignments to match your board's schematic.
 
 ## 100 MHz system clock
 create_clock -period 10.000 [get_ports clk]
@@ -19,7 +18,6 @@ set_property PACKAGE_PIN V17 [get_ports start]
 set_property IOSTANDARD LVCMOS33 [get_ports start]
 
 ## Input features on SW1-SW4 (V16, W16, W17, W15) – 1-bit each for demo
-## In a full design you would use a UART or wider bus; these are placeholders
 set_property PACKAGE_PIN V16 [get_ports {in0[0]}]
 set_property IOSTANDARD LVCMOS33 [get_ports {in0[0]}]
 
