@@ -1,6 +1,6 @@
 # Smart Multimeter using Microcontroller Systems
 
-Electrical Engineering Association Winter Project
+Electrical Engineering Association Winter Project  
 Simulation and Design
 
 ---
@@ -32,7 +32,7 @@ No hardware is needed — this is a pure software simulation.
 python simulate.py
 ```
 
-The script runs 50 test values spread log-evenly across all 5 ranges for each measurement mode (R, C, L). 
+The script runs 50 test values spread log-evenly across all 5 ranges for each measurement mode (R, C, L).  
 (Resistances are measured using the Voltage Divider Method, Capacitances are measured using the Time Constant Method and Inductnaces are measured using Resonant Frequency Method.)  
 For every test value it adds Gaussian noise, passes the reading through the auto-ranging engine, and records the true value, measured value, active range, and percentage error. It then prints a summary table comparing auto-ranging accuracy against a fixed-range baseline, and saves two labelled plots to the results/ folder.
 
