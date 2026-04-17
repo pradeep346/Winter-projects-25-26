@@ -61,8 +61,6 @@ This ensures smooth and predictable motion.
 
 ## 5. Trajectory Visualizations
 
-## 5. Trajectory Visualizations
-
 This section shows the generated trajectories used by the drone for different commands.
 
 ### Circle Trajectory
